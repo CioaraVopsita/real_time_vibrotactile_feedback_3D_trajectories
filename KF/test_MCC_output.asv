@@ -1,0 +1,16 @@
+DIO = digitalio('mcc',0); %ID board #0 needed here in case the MCC 1048 48-channel IO is also installed
+%add 3 output lines eg 2x vibration channels, one bleeper channel
+
+lines=addline(DIO,0:2,'out');
+%turn outputs off
+putvalue(DIO,0);
+
+
+data = 1;
+
+while data,
+    data = getnumber('Line number (1-8 or zero to quit)',1);
+    %set up a binary vector with 3 values to control the three outputs
+    binvec = dec2binvec(data,3)
+    putvalue(DIO,binvec);
+end

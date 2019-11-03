@@ -1,0 +1,3 @@
+function [] = viapoints(start_point,target_point)
+trajectory_vector = start_point - target_point;
+end
