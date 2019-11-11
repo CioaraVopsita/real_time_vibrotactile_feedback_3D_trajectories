@@ -102,11 +102,12 @@ R = diag([0.02, 0.025, 0.01])*10^(-4.5);
 
 %Measurementnoise covariance matrix for SDKF
 Rvel = diag([0.01, 0.012, 0.005])*10^(-7);
- 
+
 %Process Noise covariance matrix for KF - jerk as white noise; 
-Q = ([T^3/6 T^2/2 T 0 0 0 0 0 0]'*[T^3/6 T^2/2 T 0 0 0 0 0 0]+...
-     [0 0 0 T^3/6 T^2/2 T 0 0 0]'*[0 0 0 T^3/6 T^2/2 T 0 0 0]+...
-     [0 0 0 0 0 0 T^3/6 T^2/2 T]'*[0 0 0 0 0 0 T^3/6 T^2/2 T])*100; 
+q = [T^6/36 T^5/12 T^4/6; 
+     T^5/12 T^4/4 T^3/2;
+     T^4/6 T^3/2 T^2];
+Q = blkdiag(q,q,q)*100; 
 
 %Process Noise covariance matrix for SDKF - jerk as white noise;  
 Qvel = T^4/4 * eye(3); 
@@ -261,46 +262,40 @@ while n<number_trials, %until the set number of trials is completed
                        temp_signal = conv2(predicted_velocity_tangential((j-8):j),smoothing_vector,'same');
                        Vtang_smoothed(m) = temp_signal(5);
                        
-                       if m>2 % Start peak detection when 3 points have been acquired.
-                           if Vtang_smoothed(m-1)>AmpThreshold % If a point is greater than the amplitude threshold 
-                               if (Vtang_smoothed(m-1)>Vtang_smoothed(m-2) && Vtang_smoothed(m-1)>Vtang_smoothed(m)) % AND greater than the following one, register a peak.
-                                  
-                                   %If this is the first peak of the trial..
-                                   if isempty(PeakTable)
+                       if m>2 && ... % Start peak detection when 3 points have been acquired.
+                               Vtang_smoothed(m-1)>AmpThreshold && ... % If a point is greater than the amplitude threshold
+                               (Vtang_smoothed(m-1)>Vtang_smoothed(m-2) && Vtang_smoothed(m-1)>Vtang_smoothed(m)) % AND greater than the following one, register a peak.
+                           
+                           %Compute the width of the peak to eliminate high frequency noise (potentially caused by interference or other factors)
+                           [Width] = gaussfit([(m-2) (m-1) (m)],[Vtang_smoothed(m-2) Vtang_smoothed(m-1) Vtang_smoothed(m)]);
+                           
+                           %If this is the first peak of the trial..
+                           if isempty(PeakTable) && ...
+                                   Width>WidthThreshold %If true peak, register it in table
+                               Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
+                               PeakNumber=PeakNumber+1;
+                               PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
+                               
+                               %If other peaks have been registered before, check the distance between the 2 potential peaks
+                           else
+                               %If the distance betweem the two peaks is greater than 40 timestamps
+                               if (m-1)-PeakTable(end,3) > 40 && ...
+                                       Width>WidthThreshold %If true peak, register it in table
+                                   Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
+                                   PeakNumber=PeakNumber+1;
+                                   PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
+                                   
+                                   %If the distance betweem the two peaks is less than 40 timestamps
+                               elseif (m-1)-PeakTable(end,3) < 40 && ...
+                                       Width>WidthThreshold
+                                   %Check the change in velocity between the two peaks
+                                   change_interpeak = Vtang_smoothed(PeakTable(end,3):m-1);
+                                   valley = min(change_interpeak);
+                                   if Vtang_smoothed(PeakTable(end,3))-valley>1/10*Vtang_smoothed(PeakTable(end,3)) && Vtang_smoothed(m-1)-valley>1/10*Vtang_smoothed(m-1)
                                        %Compute the width of the peak to eliminate high frequency noise (potentially caused by interference or other factors)
-                                       [Width] = gaussfit([(m-2) (m-1) (m)],[Vtang_smoothed(m-2) Vtang_smoothed(m-1) Vtang_smoothed(m)]);
-                                       if Width>WidthThreshold %If true peak, register it in table
-                                           Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
-                                           PeakNumber=PeakNumber+1;
-                                           PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
-                                       end
-                                       
-                                   %If other peaks have been registered before, check the distance between the 2 potential peaks     
-                                   else
-                                       %If the distance betweem the two peaks is greater than 40 timestamps
-                                       if (m-1)-PeakTable(end,3) > 40
-                                           %Compute the width of the peak to eliminate high frequency noise (potentially caused by interference or other factors)
-                                           [Width] = gaussfit([(m-2) (m-1) (m)],[Vtang_smoothed(m-2) Vtang_smoothed(m-1) Vtang_smoothed(m)]);
-                                           if Width>WidthThreshold %If true peak, register it in table
-                                               Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
-                                               PeakNumber=PeakNumber+1;
-                                               PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
-                                           end
-                                       %If the distance betweem the two peaks is less than 40 timestamps    
-                                       else
-                                           %Check the change in velocity between the two peaks
-                                           change_interpeak = Vtang_smoothed(PeakTable(end,3):m-1);
-                                           valley = min(change_interpeak);
-                                           if Vtang_smoothed(PeakTable(end,3))-valley>1/10*Vtang_smoothed(PeakTable(end,3)) && Vtang_smoothed(m-1)-valley>1/10*Vtang_smoothed(m-1)
-                                               %Compute the width of the peak to eliminate high frequency noise (potentially caused by interference or other factors)
-                                               [Width] = gaussfit([(m-2) (m-1) (m)],[Vtang_smoothed(m-2) Vtang_smoothed(m-1) Vtang_smoothed(m)]);
-                                               if Width>WidthThreshold %If true peak, register it in table
-                                                   Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
-                                                   PeakNumber=PeakNumber+1;
-                                                   PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
-                                               end
-                                           end
-                                       end
+                                       Amplitude_Peak = Vtang_smoothed(m-1); Index = m-1;
+                                       PeakNumber=PeakNumber+1;
+                                       PeakTable(PeakNumber,:)=[PeakNumber,Amplitude_Peak,Index,Width];
                                    end
                                end
                            end
@@ -332,9 +327,9 @@ while n<number_trials, %until the set number of trials is completed
                 
                 %Check if the reaching movement has started based on positional and velocity thresholds. 
                 %If movement has started, calculate the time interval within which the peak should occur.
-                if movement_start == false
-                    if any(predicted_position(:,end) < start_range(:,1)) | any(predicted_position(:,end) > start_range(:,2))
-                        if Vtang_smoothed(end)>velocity_threshold
+                if movement_start == false && ...
+                   (any(predicted_position(:,end) < start_range(:,1)) | any(predicted_position(:,end) > start_range(:,2))) && ...
+                    Vtang_smoothed(end)>velocity_threshold
                              start_index = length(Vtang_smoothed) - find(Vtang_smoothed(end:-1:1)<velocity_threshold,1) + 1;
                              if isempty(start_index)
                              else
@@ -344,8 +339,6 @@ while n<number_trials, %until the set number of trials is completed
                                      movement_start = true;
                                  end
                              end
-                        end
-                    end
                 end
                 
                 %Positive feedback on velocity
@@ -381,22 +374,20 @@ while n<number_trials, %until the set number of trials is completed
             
             %Check if positional feedback is being given and stop it after
             %150ms
-            if vibration
-                if toc(start_vibration)>0.1
+            if vibration && ...
+               toc(start_vibration)>0.1
                     data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
                     io32(ioObj,io32address,data_out);
                     vibration=false;
-                end
             end
             
             %Check if velocity feedback is being given and stop it after
             %150ms
-            if velocity_vibration
-                if toc(start_vibration_velocity)>0.1
+            if velocity_vibration && ...
+               toc(start_vibration_velocity)>0.1
                     data_out = strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end));
                     io32(ioObj,io32address,data_out);
                     velocity_vibration=false;
-                end
             end
             
             
