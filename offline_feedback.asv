@@ -159,7 +159,10 @@ for p = 1:no_viapoints
     intersection_range(:,:,p) = [intersection_point(:,p)-max_elbow_room intersection_point(:,p)+max_elbow_room];
 end
 
-success_history = zeros(no_viapoints,number_trials);
+%Padded with an extra row of zeros to be the same size as
+%success_history_velocity for ease of providing parallel feedback witht the
+%2 actuators
+success_history = zeros(no_viapoints+1,number_trials);  
 success_history_velocity = zeros(no_viapoints+1,number_trials);
 peak_time_range = zeros(no_viapoints+1,2,number_trials);
 position_history = zeros(1,no_viapoints);
@@ -443,12 +446,42 @@ while n<number_trials, %until the set number of trials is completed
             
         elseif timestamp>=5 && timestamp<7
             %Provide offline feedback
+            
+            %Play sound signalling feedback
             if feedback_played==false
               sound(feedback_sound.y,feedback_sound.Fs);
               feedback_played=true;
             end
             
-        
+            for p = 1:no_viapoints+1
+                %Position feedback
+                if success_history(p,n) == 1
+                    start_vibration = tic;
+                    data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    while toc(start_vibration)<=0.1
+                    end
+                    data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    pause(0.5)
+                elseif success_history(p,n) == 0
+                    pause(1);
+                end
+                %Velocity feedback
+                if velocity_success_history(p,n) == 1
+                    start_vibration_velocity = tic;
+                    data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    while toc(start_vibration_velocity)<=0.1
+                    end
+                    data_out = strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    pause(0.5)
+                elseif velocity_success_history(p,n) == 0
+                    pause(1);
+                end
+            end
+    
         elseif timestamp>=7
             %Reset all variables for next trial
             error_sound=false;

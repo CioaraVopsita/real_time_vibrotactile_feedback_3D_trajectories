@@ -56,16 +56,15 @@ data_out = '00000000';
 no_viapoints = 2;
 success_history = [1 0 0 1; 1 0 1 0]; 
 for p = 1:2
-    if success_history(p,3) == 1
+    if success_history(p,1) == 1
         start_vibration = tic;
         data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
         io32(ioObj,io32address,bin2dec(data_out));
-        while toc(start_vibration)<=0.1     
-        end
+        pause(0.1);
         data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
         io32(ioObj,io32address,bin2dec(data_out));
         pause(0.5)
-    elseif success_history(p,3) == 0
+    elseif success_history(p,1) == 0
         pause(1);
     end
 end
@@ -83,8 +82,6 @@ while toc(start)<5
         played=true;
         b = toc(start);
     end
-    
-    a = [a; toc(start)];
 end
 
 
