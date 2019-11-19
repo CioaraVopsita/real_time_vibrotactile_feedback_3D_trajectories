@@ -347,15 +347,13 @@ while n<number_trials, %until the set number of trials is completed
                 %within the allowed range
                 if threshold_variable == true
                     for p = 1:no_viapoints+1 %number of velocity peaks
-                            if Index>=peak_time_range(p,1,n) && Index<=peak_time_range(p,2,n)
+                            if Index>=peak_time_range(p,1,n) && Index<=peak_time_range(p,2,n) && velocity_history(p) == false
                                     start_vibration_velocity = tic;
                                     data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
                                     io32(ioObj,io32address,bin2dec(data_out)); %start port 3
                                     velocity_vibration = true;
-                                    if velocity_history(p) == false
-                                        success_history_velocity(p,n) = 1;
-                                        velocity_history(p) = true;
-                                    end
+                                    success_history_velocity(p,n) = 1;
+                                    velocity_history(p) = true;
                             end
                     end
                 end
@@ -406,8 +404,8 @@ while n<number_trials, %until the set number of trials is completed
                         end
                         intersection_range(:,:,p) = [intersection_point(:,p)-elbow_room(:,p,n+1) intersection_point(:,p)+elbow_room(:,p,n+1)];
                     %Decrease spatial feedback range when the via point is hit
-                    %3 consecutive times
-                    elseif all(success_history(n-4:n)==1)
+                    %5 consecutive times
+                    elseif all(success_history(p,n-4:n)==1)
                         elbow_room_change = 0.9*elbow_room(:,p,n);
                         %Limit for decreasing spatial feedback range
                         if all(elbow_room_change>=min_elbow_room)
