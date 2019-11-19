@@ -444,13 +444,50 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
             
-        elseif timestamp>=5 && timestamp<7
+        elseif timestamp>=5 && timestamp<8
             %Provide offline feedback
             
             %Play sound signalling feedback
             if feedback_played==false
               sound(feedback_sound.y,feedback_sound.Fs);
               feedback_played=true;
+            end
+            
+            if vibration_position && toc(start_vibration_position)>=0.1
+                data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
+                io32(ioObj,io32address,bin2dec(data_out));
+                vibration_position = 0;
+                start_silence_position = tic;
+                silence_position = 1;
+            end
+            
+            if silence_position && toc(start_silence_position)>=0.5
+                silence_position = 0;
+                position_index = position_index+1;
+            end
+            %if a and b then p = p+1 - when silence done for both; loop for above data_out(1 and 2)
+            if fb_given == 0
+                if success_history(p,n) == 1
+                    start_vibration_position = tic;
+                    data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    vibration_position = 1;
+                elseif success_history(p,n) == 0
+                    start_silence_position = tic;
+                    silence_position = 1;
+                end
+                
+                if success_history_velocity(p,n) == 1
+                    start_vibration_velocity = tic;
+                    data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    vibration_velocity = 1;
+                elseif success_history_velocity(p,n) == 0
+                    start_silence_velocity = tic;
+                    silence_velocity = 1;
+                end
+                
+                fb_given = 1;
             end
             
             for p = 1:no_viapoints+1
@@ -465,7 +502,7 @@ while n<number_trials, %until the set number of trials is completed
                     io32(ioObj,io32address,bin2dec(data_out));
                     pause(0.5)
                 elseif success_history(p,n) == 0
-                    pause(1);
+                    pause(0.5);
                 end
                 %Velocity feedback
                 if velocity_success_history(p,n) == 1
@@ -478,11 +515,11 @@ while n<number_trials, %until the set number of trials is completed
                     io32(ioObj,io32address,bin2dec(data_out));
                     pause(0.5)
                 elseif velocity_success_history(p,n) == 0
-                    pause(1);
+                    pause(0.5);
                 end
             end
     
-        elseif timestamp>=7
+        elseif timestamp>=8
             %Reset all variables for next trial
             error_sound=false;
             feedback_played=false;
