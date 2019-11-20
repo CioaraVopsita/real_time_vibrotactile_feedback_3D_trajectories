@@ -136,6 +136,8 @@ ioObj = io32; %do not run this twice, without clearing it in between
 status = io32(ioObj); %should be zero
 io32address = hex2dec('1008');  %non-standard LPT1 output port address
 data_out = '00000000';
+data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+                      strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
 
 %% Sound initialisation
 %Sounds to signal start and end of trial
@@ -162,8 +164,7 @@ end
 %Padded with an extra row of zeros to be the same size as
 %success_history_velocity for ease of providing parallel feedback witht the
 %2 actuators
-success_history = zeros(no_viapoints+1,number_trials);  
-success_history_velocity = zeros(no_viapoints+1,number_trials);
+success_history = zeros(no_viapoints+1,number_trials,2,2);  
 peak_time_range = zeros(no_viapoints+1,2,number_trials);
 position_history = zeros(1,no_viapoints);
 velocity_history = zeros(1,no_viapoints+1);
@@ -323,7 +324,7 @@ while n<number_trials, %until the set number of trials is completed
                 for p=1:no_viapoints
                     if (all(predicted_position(:,end)>intersection_range(:,1,p)) & all(predicted_position(:,end)<intersection_range(:,2,p))) && ...
                         position_history(p) == false
-                            success_history(p,n) = 1;
+                            success_history(p,n,:,1) = [1, timestamp];
                             position_history(p) = true;
                             %start_vibration = tic;
                             %data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
@@ -354,15 +355,13 @@ while n<number_trials, %until the set number of trials is completed
                 %within the allowed range
                 if threshold_variable == true
                     for p = 1:no_viapoints+1 %number of velocity peaks
-                            if Index>=peak_time_range(p,1,n) && Index<=peak_time_range(p,2,n)
+                            if Index>=peak_time_range(p,1,n) && Index<=peak_time_range(p,2,n) && velocity_history(p) == false
                                     %start_vibration_velocity = tic;
                                     %data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
                                     %io32(ioObj,io32address,bin2dec(data_out)); %start port 3
                                     %velocity_vibration = true;
-                                    if velocity_history(p) == false
-                                        success_history_velocity(p,n) = 1;
-                                        velocity_history(p) = true;
-                                    end
+                                    success_history(p,n,:,2) = [1 timestamp];
+                                    velocity_history(p) = true;
                             end
                     end
                 end
@@ -377,7 +376,7 @@ while n<number_trials, %until the set number of trials is completed
                 
             end
             
-        elseif timestamp>3 && timestamp<5 %1 or 2 seconds?
+        elseif timestamp>=3 && timestamp<5 %1 or 2 seconds?
             
             %Check if positional feedback is being given and stop it after
             %150ms
@@ -411,7 +410,7 @@ while n<number_trials, %until the set number of trials is completed
                 %Increase spatial feedback range when the via point is missed 3
                 %consecutive times
                 for p = 1:no_viapoints
-                    if all(success_history(p,n-2:n)==0)
+                    if all(success_history(p,n-2:n,1,1)==0)
                         elbow_room_change = 1.05*elbow_room(:,p,n);
                         %Limit for increasing spatial feedback range
                         if all(elbow_room_change<=max_elbow_room)
@@ -421,8 +420,8 @@ while n<number_trials, %until the set number of trials is completed
                         end
                         intersection_range(:,:,p) = [intersection_point(:,p)-elbow_room(:,p,n+1) intersection_point(:,p)+elbow_room(:,p,n+1)];
                     %Decrease spatial feedback range when the via point is hit
-                    %3 consecutive times
-                    elseif all(success_history(n-4:n)==1)
+                    %5 consecutive times
+                    elseif all(success_history(p,n-4:n,1,1)==1)
                         elbow_room_change = 0.9*elbow_room(:,p,n);
                         %Limit for decreasing spatial feedback range
                         if all(elbow_room_change>=min_elbow_room)
@@ -444,81 +443,47 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
             
-        elseif timestamp>=5 && timestamp<8
+        elseif timestamp>=5 && timestamp<8 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
             %Provide offline feedback
             
-            %Play sound signalling feedback
+            %Play sound signalling feedback CHANGE
             if feedback_played==false
               sound(feedback_sound.y,feedback_sound.Fs);
               feedback_played=true;
             end
             
-            if vibration_position && toc(start_vibration_position)>=0.1
-                data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
-                io32(ioObj,io32address,bin2dec(data_out));
-                vibration_position = 0;
-                start_silence_position = tic;
-                silence_position = 1;
+            for measure = 1:2
+                if vibration(measure) && toc(uint64(start_vibration(measure)))>=0.1
+                    data_out = data_out_cellarray(measure,2);
+                    io32(ioObj,io32address,bin2dec(data_out));
+                end
             end
             
-            if silence_position && toc(start_silence_position)>=0.5
-                silence_position = 0;
-                position_index = position_index+1;
-            end
-            %if a and b then p = p+1 - when silence done for both; loop for above data_out(1 and 2)
-            if fb_given == 0
-                if success_history(p,n) == 1
-                    start_vibration_position = tic;
-                    data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    vibration_position = 1;
-                elseif success_history(p,n) == 0
-                    start_silence_position = tic;
-                    silence_position = 1;
-                end
-                
-                if success_history_velocity(p,n) == 1
-                    start_vibration_velocity = tic;
-                    data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    vibration_velocity = 1;
-                elseif success_history_velocity(p,n) == 0
-                    start_silence_velocity = tic;
-                    silence_velocity = 1;
-                end
-                
-                fb_given = 1;
+            if all(move_tonext_index)
+                fb_index = fb_index+1;
+                fb_given = 0;
+                move_tonext_index(:)=0;
             end
             
-            for p = 1:no_viapoints+1
-                %Position feedback
-                if success_history(p,n) == 1
-                    start_vibration = tic;
-                    data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
+            %start_vibration = ones(1,2) and RESRET start_vibration(1,2)
+            %SAME for start_silence
+            %D vibration (1 and 2) silence(1,2)
+            
+            for measure = 1:2
+                if success_history(fb_index,n,1,measure) == 1 && ...
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&...
+                        move_tonext_index(measure)== 0
+                    start_vibration(measure) = tic;
+                    data_out = data_out_cellarray(measure,1); %turn vibration on
                     io32(ioObj,io32address,bin2dec(data_out));
-                    while toc(start_vibration)<=0.1
-                    end
-                    data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    pause(0.5)
-                elseif success_history(p,n) == 0
-                    pause(0.5);
-                end
-                %Velocity feedback
-                if velocity_success_history(p,n) == 1
-                    start_vibration_velocity = tic;
-                    data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    while toc(start_vibration_velocity)<=0.1
-                    end
-                    data_out = strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end));
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    pause(0.5)
-                elseif velocity_success_history(p,n) == 0
-                    pause(0.5);
+                    vibration(measure) = 1;
+                    move_tonext_index(measure) = 1;
+                elseif success_history(fb_index,n,1,measure) == 0 &&...
+                        move_tonext_index(measure)== 0
+                    move_tonext_index(measure) = 1;
                 end
             end
-    
+                
         elseif timestamp>=8
             %Reset all variables for next trial
             error_sound=false;

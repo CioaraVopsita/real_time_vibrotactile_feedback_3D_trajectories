@@ -50,21 +50,25 @@ ioObj = io32; %do not run this twice, without clearing it in between
 status = io32(ioObj); %should be zero
 io32address = hex2dec('1008');  %non-standard LPT1 output port address
 data_out = '00000000';
+D = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+    strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end))};
 
 
 %% test offline feedback
 no_viapoints = 2;
 success_history = [1 0 0 1; 1 0 1 0]; 
 for p = 1:2
-    if success_history(p,1) == 1
+    if success_history(p,4) == 1
         start_vibration = tic;
-        data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
+        data_out = D(1,1);
+        %data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
         io32(ioObj,io32address,bin2dec(data_out));
         pause(0.1);
-        data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
+        data_out = D(1,2);
+        %data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
         io32(ioObj,io32address,bin2dec(data_out));
         pause(0.5)
-    elseif success_history(p,1) == 0
+    elseif success_history(p,4) == 0
         pause(1);
     end
 end
