@@ -459,9 +459,8 @@ while n<number_trials, %until the set number of trials is completed
                 end
             end
             
-            if all(move_tonext_index)
+            if all(move_tonext_index) && fb_index<size(success_history,1)
                 fb_index = fb_index+1;
-                fb_given = 0;
                 move_tonext_index(:)=0;
             end
             
@@ -471,7 +470,7 @@ while n<number_trials, %until the set number of trials is completed
             
             for measure = 1:2
                 if success_history(fb_index,n,1,measure) == 1 && ...
-                        abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&...
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
                     start_vibration(measure) = tic;
                     data_out = data_out_cellarray(measure,1); %turn vibration on

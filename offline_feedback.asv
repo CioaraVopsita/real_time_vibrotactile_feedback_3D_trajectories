@@ -456,48 +456,33 @@ while n<number_trials, %until the set number of trials is completed
                 if vibration(measure) && toc(uint64(start_vibration(measure)))>=0.1
                     data_out = data_out_cellarray(measure,2);
                     io32(ioObj,io32address,bin2dec(data_out));
-                    vibration(measure) = 0;
-                    %move_tonext_index(measure) = 1;
-                    %start_silence(measure) = tic;
-                    %silence(measure) = 1;
                 end
-
-%                 if silence(measure) && toc(uint64(start_silence(meausre)))>=0.5
-%                     silence(measure) = 0;
-%                     position_index = position_index+1;
-%                 end
             end
             
             if all(move_tonext_index)
                 fb_index = fb_index+1;
-                fb_given = 0;
                 move_tonext_index(:)=0;
             end
             
-            %if something; fb_index = fb_index+1; fb_given = 0
-            %if a and b then p = p+1 - when silence done for both; loop for above data_out(1 and 2)
-            % p = fb_index!!!!!!!!!!!
             %start_vibration = ones(1,2) and RESRET start_vibration(1,2)
             %SAME for start_silence
             %D vibration (1 and 2) silence(1,2)
-            %if fb_given == 0
-                for measure = 1:2
-                    if success_history(fb_index,n,1,measure) == 1 && ...
-                       abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 %&& move(measure)=0
-                        start_vibration(measure) = tic;
-                        data_out = data_out_cellarray(measure,1); %turn vibration on
-                        io32(ioObj,io32address,bin2dec(data_out));
-                        vibration(measure) = 1;
-                        %movetonext(measure) = 1 ADD
-                     elseif success_history(fb_index,n,1,measure) == 0 % and move(measure)== 0
-                         move_tonext_index(measure) = 1;
-%                         start_silence(measure) = tic;
-%                         silence(measure) = 1;
-                    end
-                end
-                %fb_given = 1;
-            %end
             
+            for measure = 1:2
+                if success_history(fb_index,n,1,measure) == 1 && ...
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&... %timestamp-6 ?? ask Chris
+                        move_tonext_index(measure)== 0
+                    start_vibration(measure) = tic;
+                    data_out = data_out_cellarray(measure,1); %turn vibration on
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    vibration(measure) = 1;
+                    move_tonext_index(measure) = 1;
+                elseif success_history(fb_index,n,1,measure) == 0 &&...
+                        move_tonext_index(measure)== 0
+                    move_tonext_index(measure) = 1;
+                end
+            end
+                
         elseif timestamp>=8
             %Reset all variables for next trial
             error_sound=false;
