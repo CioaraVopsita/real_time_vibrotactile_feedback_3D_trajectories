@@ -77,10 +77,12 @@ m = 1;
 PeakTable = [];
 error_sound = false;
 feedback_played=false;
-vibration = false;
-velocity_vibration = false;
+vibration = zeros(1,2);
+move_tonext_index = zeros(1,2);
+start_vibration_timing = ones(1,2);
 threshold_variable = false;
 movement_start = false;
+fb_index = 1;
 sample=0;
 Index = 0;
 
@@ -453,9 +455,10 @@ while n<number_trials, %until the set number of trials is completed
             end
             
             for measure = 1:2
-                if vibration(measure) && toc(uint64(start_vibration(measure)))>=0.1
+                if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
                     data_out = data_out_cellarray(measure,2);
                     io32(ioObj,io32address,bin2dec(data_out));
+                    vibration(measure) = 0;
                 end
             end
             
@@ -472,7 +475,7 @@ while n<number_trials, %until the set number of trials is completed
                 if success_history(fb_index,n,1,measure) == 1 && ...
                         abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
-                    start_vibration(measure) = tic;
+                    start_vibration_timing(measure) = tic;
                     data_out = data_out_cellarray(measure,1); %turn vibration on
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 1;
@@ -493,6 +496,9 @@ while n<number_trials, %until the set number of trials is completed
             movement_start = false;
             predicted_position = [];
             Vtang_smoothed = [];
+            move_tonext_index = zeros(1,2);
+            start_vibration_timing = ones(1,2);
+            fb_index = 1;
             Index = 0;
             sample = 0;
             PeakNumber = 0;

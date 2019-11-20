@@ -77,8 +77,8 @@ m = 1;
 PeakTable = [];
 error_sound = false;
 feedback_played=false;
-vibration = false;
-velocity_vibration = false;
+vibration = zeros(1,2);
+move_tonext_index = zeros(1,2);
 threshold_variable = false;
 movement_start = false;
 sample=0;
@@ -456,10 +456,11 @@ while n<number_trials, %until the set number of trials is completed
                 if vibration(measure) && toc(uint64(start_vibration(measure)))>=0.1
                     data_out = data_out_cellarray(measure,2);
                     io32(ioObj,io32address,bin2dec(data_out));
+                    vibration(measure) = 0;
                 end
             end
             
-            if all(move_tonext_index)
+            if all(move_tonext_index) && fb_index<size(success_history,1)
                 fb_index = fb_index+1;
                 move_tonext_index(:)=0;
             end
