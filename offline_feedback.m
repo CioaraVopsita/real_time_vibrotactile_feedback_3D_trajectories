@@ -196,23 +196,6 @@ while n<number_trials, %until the set number of trials is completed
             %now, leave it like this because I only need one motion
             %tracker.
             
-            %Check if positional feedback is being given and stop it after
-            %150ms
-%             if vibration && ...
-%                toc(start_vibration)>0.1
-%                     data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
-%                     io32(ioObj,io32address,bin2dec(data_out));
-%                     vibration=false;
-%             end
-            
-            %Check if velocity feedback is being given and stop it after
-            %150ms
-%             if velocity_vibration && ...
-%                toc(start_vibration_velocity)>0.1
-%                     data_out = strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end));
-%                     io32(ioObj,io32address,data_out);
-%             end
-            
             %Wait 20 timestamps before instructing participants to move to
             %allow KF to converge
             if i==20 
@@ -317,7 +300,8 @@ while n<number_trials, %until the set number of trials is completed
                 i = i+1;
             end
             
-            %Start giving feedback
+            %Calculate if feedback should be given but DO NOT give feedback
+            %until the end of trial
             
             %Positive feedback on position
             %Feedback if the via-point (+/- the allowed spatial interval) is reached
@@ -328,10 +312,6 @@ while n<number_trials, %until the set number of trials is completed
                         position_history(p) == false
                             success_history(p,n,:,1) = [1, timestamp];
                             position_history(p) = true;
-                            %start_vibration = tic;
-                            %data_out = strcat(strrep(data_out(1),'0','1'),data_out(2:end));
-                            %io32(ioObj,io32address,bin2dec(data_out)); %start port 7
-                            %vibration = true;
                     end
                 end
                 
@@ -358,10 +338,6 @@ while n<number_trials, %until the set number of trials is completed
                 if threshold_variable == true
                     for p = 1:no_viapoints+1 %number of velocity peaks
                             if Index>=peak_time_range(p,1,n) && Index<=peak_time_range(p,2,n) && velocity_history(p) == false
-                                    %start_vibration_velocity = tic;
-                                    %data_out = strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end));
-                                    %io32(ioObj,io32address,bin2dec(data_out)); %start port 3
-                                    %velocity_vibration = true;
                                     success_history(p,n,:,2) = [1 timestamp];
                                     velocity_history(p) = true;
                             end
@@ -379,26 +355,7 @@ while n<number_trials, %until the set number of trials is completed
             end
             
         elseif timestamp>=3 && timestamp<5 %1 or 2 seconds?
-            
-            %Check if positional feedback is being given and stop it after
-            %150ms
-%             if vibration && ...
-%                toc(start_vibration)>0.1
-%                     data_out = strcat(strrep(data_out(1),'1','0'),data_out(2:end));
-%                     io32(ioObj,io32address,data_out);
-%                     vibration=false;
-%             end
-            
-            %Check if velocity feedback is being given and stop it after
-            %150ms
-%             if velocity_vibration && ...
-%                toc(start_vibration_velocity)>0.1
-%                     data_out = strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end));
-%                     io32(ioObj,io32address,data_out);
-%                     velocity_vibration=false;
-%             end
-            
-            
+
             %Signal end of trial
             if error_sound==false
               play(end_sound);
@@ -434,7 +391,6 @@ while n<number_trials, %until the set number of trials is completed
                         intersection_range(:,:,p) = [intersection_point(:,p)-elbow_room(:,p,n+1) intersection_point(:,p)+elbow_room(:,p,n+1)];
                     else
                         elbow_room(:,p,n+1) = elbow_room(:,p,n);
-                        %intersection_range(:,:,p) = [intersection_point()-elbow_room(:,n+1) intersection_point+elbow_room(:,n+1)];
                         intersection_range(:,:,p) = intersection_range(:,:,p);
                     end
                 end
@@ -454,6 +410,8 @@ while n<number_trials, %until the set number of trials is completed
               feedback_played=true;
             end
             
+            %Check is any actuator is vibrating and if so whether the burst
+            %is over
             for measure = 1:2
                 if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
                     data_out = data_out_cellarray(measure,2);
@@ -462,15 +420,16 @@ while n<number_trials, %until the set number of trials is completed
                 end
             end
             
+            %Check feedback is completed for via-point/peak and if so, move
+            %to the next one
             if all(move_tonext_index) && fb_index<size(success_history,1)
                 fb_index = fb_index+1;
                 move_tonext_index(:)=0;
             end
             
-            %start_vibration = ones(1,2) and RESRET start_vibration(1,2)
-            %SAME for start_silence
-            %D vibration (1 and 2) silence(1,2)
-            
+            %Give feedback on position or velocity according to the
+            %"measure" variable at the corresponding timestamp from the
+            %actual movement
             for measure = 1:2
                 if success_history(fb_index,n,1,measure) == 1 && ...
                         abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&... %timestamp-6 ?? ask Chris
