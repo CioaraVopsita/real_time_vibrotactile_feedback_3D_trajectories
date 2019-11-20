@@ -75,7 +75,7 @@ j = 2;
 i = 1;
 m = 1;
 PeakTable = [];
-error_sound = false;
+end_trial = false;
 vibration = false;
 velocity_vibration = false;
 threshold_variable = false;
@@ -207,7 +207,6 @@ while n<number_trials, %until the set number of trials is completed
             %allow KF to converge
             if i==20 
                 play(start_sound);  
-                fprintf('\n Start');
             end
             
             
@@ -423,10 +422,9 @@ while n<number_trials, %until the set number of trials is completed
             end
             
             %Signal end of trial
-            if error_sound==false
+            if end_trial==false
               play(end_sound);
-              fprintf('\n ERROR');
-              error_sound=true;
+              end_trial=true;
             end
 
             position{n} = predicted_position;
@@ -437,7 +435,7 @@ while n<number_trials, %until the set number of trials is completed
         
         elseif timestamp>5
             %Reset all variables for next trial
-            error_sound=false;
+            end_trial=false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;
