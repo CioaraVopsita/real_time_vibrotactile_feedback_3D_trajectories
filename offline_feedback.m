@@ -403,7 +403,7 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
             
-        elseif timestamp>=5 && timestamp<8 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
+        elseif timestamp>=5 && timestamp<10 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
             %Provide offline feedback
             
             %Play sound signalling feedback CHANGE
