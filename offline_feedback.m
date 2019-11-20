@@ -77,6 +77,8 @@ m = 1;
 PeakTable = [];
 error_sound = false;
 feedback_played=false;
+begin_replay = false;
+end_replay = false;
 vibration = zeros(1,2);
 move_tonext_index = zeros(1,2);
 start_vibration_timing = ones(1,2);
@@ -407,7 +409,13 @@ while n<number_trials, %until the set number of trials is completed
             %Play sound signalling feedback CHANGE
             if feedback_played==false
               sound(feedback_sound.y,feedback_sound.Fs);
-              feedback_played=true;
+              feedback_played = true;
+            elseif begin_replay==false && timestamp>=6+20*T
+              play(start_sound);
+              begin_replay = true;
+            elseif end_replay==false && timestamp>=9
+              play(end_sound);
+              end_replay = true;
             end
             
             %Check is any actuator is vibrating and if so whether the burst
@@ -432,7 +440,7 @@ while n<number_trials, %until the set number of trials is completed
             %actual movement
             for measure = 1:2
                 if success_history(fb_index,n,1,measure) == 1 && ...
-                        abs(success_history(fb_index,n,2,measure)-(timestamp-5))<0.005 &&... %timestamp-6 ?? ask Chris
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
                     start_vibration_timing(measure) = tic;
                     data_out = data_out_cellarray(measure,1); %turn vibration on
@@ -445,10 +453,12 @@ while n<number_trials, %until the set number of trials is completed
                 end
             end
                 
-        elseif timestamp>=8
+        elseif timestamp>=10
             %Reset all variables for next trial
             error_sound=false;
             feedback_played=false;
+            begin_replay = false;
+            end_replay = false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;
