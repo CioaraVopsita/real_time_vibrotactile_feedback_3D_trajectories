@@ -140,8 +140,11 @@ ioObj = io32; %do not run this twice, without clearing it in between
 status = io32(ioObj); %should be zero
 io32address = hex2dec('1008');  %non-standard LPT1 output port address
 data_out = '00000000';
-data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
-                      strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
+data_out_cellarray = {@(data_out) strcat(strrep(data_out(1),'0','1'),data_out(2:end)), @(data_out) strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+                      @(data_out) strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), @(data_out) strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
+
+% data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+%                       strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
 
 %% Sound initialisation
 %Sounds to signal start and end of trial
@@ -202,7 +205,6 @@ while n<number_trials, %until the set number of trials is completed
             %allow KF to converge
             if i==20 
                 play(start_sound);  
-                fprintf('\n Start');
             end
             
             
@@ -421,7 +423,8 @@ while n<number_trials, %until the set number of trials is completed
             %is over
             for measure = 1:2
                 if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
-                    data_out = data_out_cellarray(measure,2);
+                    actuator = data_out_cellarray{measure,2};
+                    data_out = actuator(data_out);
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 0;
                 end
@@ -442,7 +445,8 @@ while n<number_trials, %until the set number of trials is completed
                         abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
                     start_vibration_timing(measure) = tic;
-                    data_out = data_out_cellarray(measure,1); %turn vibration on
+                    actuator = data_out_cellarray{measure,1}; %turn vibration on
+                    data_out = actuator(data_out);
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 1;
                     move_tonext_index(measure) = 1;

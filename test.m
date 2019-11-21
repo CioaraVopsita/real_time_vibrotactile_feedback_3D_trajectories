@@ -50,8 +50,8 @@ ioObj = io32; %do not run this twice, without clearing it in between
 status = io32(ioObj); %should be zero
 io32address = hex2dec('1008');  %non-standard LPT1 output port address
 data_out = '00000000';
-D = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
-    strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end))};
+data_out_cellarray = {@(data_out) strcat(strrep(data_out(1),'0','1'),data_out(2:end)), @(data_out) strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+                      @(data_out) strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), @(data_out) strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
 
 
 %% test offline feedback

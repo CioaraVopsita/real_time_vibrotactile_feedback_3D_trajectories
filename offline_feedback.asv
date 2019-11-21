@@ -75,8 +75,10 @@ j = 2;
 i = 1;
 m = 1;
 PeakTable = [];
-error_sound = false;
+end_trial = false;
 feedback_played=false;
+begin_replay = false;
+end_replay = false;
 vibration = zeros(1,2);
 move_tonext_index = zeros(1,2);
 start_vibration_timing = ones(1,2);
@@ -138,8 +140,11 @@ ioObj = io32; %do not run this twice, without clearing it in between
 status = io32(ioObj); %should be zero
 io32address = hex2dec('1008');  %non-standard LPT1 output port address
 data_out = '00000000';
-data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
-                      strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
+data_out_cellarray = {@(data_out) strcat(strrep(data_out(1),'0','1'),data_out(2:end)), @(data_out) strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+                      @(data_out) strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), @(data_out) strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
+
+% data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
+%                       strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
 
 %% Sound initialisation
 %Sounds to signal start and end of trial
@@ -200,7 +205,6 @@ while n<number_trials, %until the set number of trials is completed
             %allow KF to converge
             if i==20 
                 play(start_sound);  
-                fprintf('\n Start');
             end
             
             
@@ -357,10 +361,9 @@ while n<number_trials, %until the set number of trials is completed
         elseif timestamp>=3 && timestamp<5 %1 or 2 seconds?
 
             %Signal end of trial
-            if error_sound==false
+            if end_trial==false
               play(end_sound);
-              fprintf('\n ERROR');
-              error_sound=true;
+              end_trial=true;
             end
             
             
@@ -401,30 +404,27 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
             
-        elseif timestamp>=5 && timestamp<8 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
+        elseif timestamp>=5 && timestamp<10 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
             %Provide offline feedback
             
             %Play sound signalling feedback CHANGE
             if feedback_played==false
               sound(feedback_sound.y,feedback_sound.Fs);
-              feedback_played=true;
-            elseif 
-            end
-            
-            play(start_sound);
-            
-            if error_sound==false
+              feedback_played = true;
+            elseif begin_replay==false && timestamp>=6+20*T
+              play(start_sound);
+              begin_replay = true;
+            elseif end_replay==false && timestamp>=9
               play(end_sound);
-              fprintf('\n ERROR');
-              error_sound=true;
+              end_replay = true;
             end
-            
             
             %Check is any actuator is vibrating and if so whether the burst
             %is over
             for measure = 1:2
                 if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
-                    data_out = data_out_cellarray(measure,2);
+                    actuator = data_out_cellarray{measure,2};
+                    data_out = actuator(data_out);
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 0;
                 end
@@ -445,7 +445,8 @@ while n<number_trials, %until the set number of trials is completed
                         abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
                     start_vibration_timing(measure) = tic;
-                    data_out = data_out_cellarray(measure,1); %turn vibration on
+                    actuator = data_out_cellarray{measure,1}; %turn vibration on
+                    data_out = actuator(data_out);
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 1;
                     move_tonext_index(measure) = 1;
@@ -457,8 +458,10 @@ while n<number_trials, %until the set number of trials is completed
                 
         elseif timestamp>=10
             %Reset all variables for next trial
-            error_sound=false;
+            end_trial=false;
             feedback_played=false;
+            begin_replay = false;
+            end_replay = false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;
