@@ -77,6 +77,7 @@ i = 1;
 m = 1;
 PeakTable = [];
 end_trial = false;
+begin_replay = false;
 vibration = zeros(1,2);
 move_tonext_index = zeros(1,2);
 start_vibration_timing = ones(1,2);
@@ -353,7 +354,7 @@ while n<number_trials, %until the set number of trials is completed
         elseif timestamp>=3 && timestamp<6 
              %Provide offline feedback
              
-             %Play sound signalling feedback CHANGE
+             %Play sound signalling feedback 
             if begin_replay==false && timestamp>=3+20*T
               play(start_sound);
               begin_replay = true;
@@ -445,6 +446,7 @@ while n<number_trials, %until the set number of trials is completed
         elseif timestamp>=8
             %Reset all variables for next trial
             end_trial=false;
+            begin_replay = false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;

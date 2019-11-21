@@ -77,6 +77,7 @@ i = 1;
 m = 1;
 PeakTable = [];
 end_trial = false;
+begin_replay = false
 start_vibration = ones(1,2);
 vibration = zeros(1,2);
 threshold_variable = false;
@@ -367,8 +368,11 @@ while n<number_trials, %until the set number of trials is completed
             while toc(t0)<=sample
                 
             end
+
+        elseif timestamp>=3 && timestamp<6
             
-        elseif timestamp>3 && timestamp<5 
+            %Mirror time interval from offline feedback condition - wait at
+            %target
             
             %Check if any actuator is vibrating and if so whether the burst
             %is over
@@ -379,6 +383,19 @@ while n<number_trials, %until the set number of trials is completed
                     io32(ioObj,io32address,bin2dec(data_out));
                     vibration(measure) = 0;
                 end
+            end
+
+            if begin_replay==false && timestamp>=3+20*T
+                play(start_sound);
+                begin_replay = true;
+            end
+            
+        elseif timestamp>=6 && timestamp<8
+    
+            %Signal end of trial
+            if end_trial==false
+              play(end_sound);
+              end_trial=true;
             end
                        
             %Psychometric Staircase
@@ -412,13 +429,7 @@ while n<number_trials, %until the set number of trials is completed
                         intersection_range(:,:,p) = intersection_range(:,:,p);
                     end
                 end
-            end
-            
-            %Signal end of trial
-            if end_trial==false
-              play(end_sound);
-              end_trial=true;
-            end
+            end 
 
             position{n} = predicted_position;
             velocity{n} = predicted_velocity;
@@ -426,9 +437,10 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
         
-        elseif timestamp>5
+        elseif timestamp>=8
             %Reset all variables for next trial
             end_trial=false;
+            begin_replay = false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;

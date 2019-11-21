@@ -4,6 +4,7 @@
 %using the Prok.liberty interface to the liberty
 %
 %Chris Miall 21/8/2018
+%Nicoleta Condruz 21/11/2019 - from cell 2 onwards
 
 fprintf('-------------------------------------------------------\n');
 fprintf('8 channel Liberty realtime demo\n');
@@ -366,8 +367,10 @@ while n<number_trials, %until the set number of trials is completed
             while toc(t0)<=sample
                 
             end
-            
-        elseif timestamp>3 && timestamp<5 
+
+        elseif timestamp>=3 && timestamp<6
+
+        elseif timestamp>=6 && timestamp<8
             
             %Check if any actuator is vibrating and if so whether the burst
             %is over
@@ -425,7 +428,7 @@ while n<number_trials, %until the set number of trials is completed
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
         
-        elseif timestamp>5
+        elseif timestamp>=8
             %Reset all variables for next trial
             end_trial=false;
             position_history(:) = false;
