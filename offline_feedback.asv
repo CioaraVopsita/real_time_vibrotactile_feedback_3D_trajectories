@@ -358,8 +358,54 @@ while n<number_trials, %until the set number of trials is completed
                 
             end
             
-        elseif timestamp>=3 && timestamp<5 %1 or 2 seconds?
+        elseif timestamp>=3 && timestamp<6 
+             %Provide offline feedback
+             
+             %Play sound signalling feedback CHANGE
+            if begin_replay==false && timestamp>=6+20*T
+              play(start_sound);
+              begin_replay = true;
+            end
+            
+            %Check is any actuator is vibrating and if so whether the burst
+            %is over
+            for measure = 1:2
+                if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
+                    actuator = data_out_cellarray{measure,2};
+                    data_out = actuator(data_out);
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    vibration(measure) = 0;
+                end
+            end
+            
+            %Check feedback is completed for via-point/peak and if so, move
+            %to the next one
+            if all(move_tonext_index) && fb_index<size(success_history,1)
+                fb_index = fb_index+1;
+                move_tonext_index(:)=0;
+            end
+            
+            %Give feedback on position or velocity according to the
+            %"measure" variable at the corresponding timestamp from the
+            %actual movement
+            for measure = 1:2
+                if success_history(fb_index,n,1,measure) == 1 && ...
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
+                        move_tonext_index(measure)== 0
+                    start_vibration_timing(measure) = tic;
+                    actuator = data_out_cellarray{measure,1}; %turn vibration on
+                    data_out = actuator(data_out);
+                    io32(ioObj,io32address,bin2dec(data_out));
+                    vibration(measure) = 1;
+                    move_tonext_index(measure) = 1;
+                elseif success_history(fb_index,n,1,measure) == 0 &&...
+                        move_tonext_index(measure)== 0
+                    move_tonext_index(measure) = 1;
+                end
+            end
 
+        elseif timestamp>=5 && timestamp<10 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
+            
             %Signal end of trial
             if end_trial==false
               play(end_sound);
@@ -403,58 +449,6 @@ while n<number_trials, %until the set number of trials is completed
             velocity_tangential{n} = predicted_velocity_tangential;
             Vtang{n} = Vtang_smoothed;
             PeakStruct{n} = PeakTable;
-            
-        elseif timestamp>=5 && timestamp<10 % from 5 to 6; train; to 10; from 8 to 9 end of replay sound and wait for next trial
-            %Provide offline feedback
-            
-            %Play sound signalling feedback CHANGE
-            if feedback_played==false
-              sound(feedback_sound.y,feedback_sound.Fs);
-              feedback_played = true;
-            elseif begin_replay==false && timestamp>=6+20*T
-              play(start_sound);
-              begin_replay = true;
-            elseif end_replay==false && timestamp>=9
-              play(end_sound);
-              end_replay = true;
-            end
-            
-            %Check is any actuator is vibrating and if so whether the burst
-            %is over
-            for measure = 1:2
-                if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
-                    actuator = data_out_cellarray{measure,2};
-                    data_out = actuator(data_out);
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    vibration(measure) = 0;
-                end
-            end
-            
-            %Check feedback is completed for via-point/peak and if so, move
-            %to the next one
-            if all(move_tonext_index) && fb_index<size(success_history,1)
-                fb_index = fb_index+1;
-                move_tonext_index(:)=0;
-            end
-            
-            %Give feedback on position or velocity according to the
-            %"measure" variable at the corresponding timestamp from the
-            %actual movement
-            for measure = 1:2
-                if success_history(fb_index,n,1,measure) == 1 && ...
-                        abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
-                        move_tonext_index(measure)== 0
-                    start_vibration_timing(measure) = tic;
-                    actuator = data_out_cellarray{measure,1}; %turn vibration on
-                    data_out = actuator(data_out);
-                    io32(ioObj,io32address,bin2dec(data_out));
-                    vibration(measure) = 1;
-                    move_tonext_index(measure) = 1;
-                elseif success_history(fb_index,n,1,measure) == 0 &&...
-                        move_tonext_index(measure)== 0
-                    move_tonext_index(measure) = 1;
-                end
-            end
                 
         elseif timestamp>=10
             %Reset all variables for next trial
