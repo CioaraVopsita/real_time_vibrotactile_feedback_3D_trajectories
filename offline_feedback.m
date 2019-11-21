@@ -4,6 +4,7 @@
 %using the Prok.liberty interface to the liberty
 %
 %Chris Miall 21/8/2018
+%Nicoleta Condruz 21/11/2019 - from cell 2 onwards
 
 fprintf('-------------------------------------------------------\n');
 fprintf('8 channel Liberty realtime demo\n');
@@ -76,9 +77,6 @@ i = 1;
 m = 1;
 PeakTable = [];
 end_trial = false;
-feedback_played=false;
-begin_replay = false;
-end_replay = false;
 vibration = zeros(1,2);
 move_tonext_index = zeros(1,2);
 start_vibration_timing = ones(1,2);
@@ -143,16 +141,10 @@ data_out = '00000000';
 data_out_cellarray = {@(data_out) strcat(strrep(data_out(1),'0','1'),data_out(2:end)), @(data_out) strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
                       @(data_out) strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), @(data_out) strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
 
-% data_out_cellarray = {strcat(strrep(data_out(1),'0','1'),data_out(2:end)), strcat(strrep(data_out(1),'1','0'),data_out(2:end));...
-%                       strcat(data_out(1:4),strrep(data_out(5),'0','1'),data_out(6:end)), strcat(data_out(1:4),strrep(data_out(5),'1','0'),data_out(6:end))};
-
 %% Sound initialisation
 %Sounds to signal start and end of trial
 start_sound = audioplayer(sin(1:1500),8000);
 end_sound = audioplayer(tan(1:1500),7000);
-feedback_sound = load('train');
-feedback_sound.y = feedback_sound.y(1:9000);
-feedback_sound.Fs = 9000;
 
 %% Viapoints variables
 %Via-points computation; initialisation of psychometric staircase values
@@ -367,7 +359,7 @@ while n<number_trials, %until the set number of trials is completed
               begin_replay = true;
             end
             
-            %Check is any actuator is vibrating and if so whether the burst
+            %Check if any actuator is vibrating and if so whether the burst
             %is over
             for measure = 1:2
                 if vibration(measure) && toc(uint64(start_vibration_timing(measure)))>=0.1
@@ -453,9 +445,6 @@ while n<number_trials, %until the set number of trials is completed
         elseif timestamp>=8
             %Reset all variables for next trial
             end_trial=false;
-            feedback_played=false;
-            begin_replay = false;
-            end_replay = false;
             position_history(:) = false;
             velocity_history(:) = false;
             threshold_variable = false;
