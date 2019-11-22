@@ -383,7 +383,7 @@ while n<number_trials, %until the set number of trials is completed
             %actual movement
             for measure = 1:2
                 if success_history(fb_index,n,1,measure) == 1 && ...
-                        abs(success_history(fb_index,n,2,measure)-(timestamp-6))<0.005 &&... %timestamp-6 ?? ask Chris
+                        abs(success_history(fb_index,n,2,measure)-(timestamp-3))<0.005 &&... %timestamp-6 ?? ask Chris
                         move_tonext_index(measure)== 0
                     start_vibration_timing(measure) = tic;
                     actuator = data_out_cellarray{measure,1}; %turn vibration on
