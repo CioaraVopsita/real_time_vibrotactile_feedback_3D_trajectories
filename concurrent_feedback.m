@@ -50,8 +50,8 @@ escapeKey = KbName('ESCAPE');
 %How many via-points
 no_viapoints = 2;
 ideal_intervals = [85 175 155];
-intersection_point(:,1) = [53.200063736453640;-3.066039158092281;-16.244148728378400];
-intersection_point(:,2) = [94.121535660032780;-45.512774165010170;7.839798070657082];
+intersection_point(:,1) = [56.691944020694464;-2.651627743514140;-18.833033578392524];
+intersection_point(:,2) = [93.347364610593420;-41.670056251802050;6.015742061317503];
 
 number_trials = 51;
 velocity_threshold = 11;
