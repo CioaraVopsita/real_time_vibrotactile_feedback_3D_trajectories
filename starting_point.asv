@@ -20,8 +20,8 @@ theta = -pi/4;
 m1 = 3.3/10;
 m2 = 6.6/10;
 
-theta1 = -pi/4;
-theta2 = pi/4;
+theta1 = pi/4;
+theta2 = -pi/4;
 
 [intersection_point1] = viapoints(start_point,target_point,m1,theta1);
 [intersection_point2] = viapoints(start_point,target_point,m2,theta2);
