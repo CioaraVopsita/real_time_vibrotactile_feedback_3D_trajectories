@@ -98,12 +98,12 @@ c_jerk_all = multcompare(stats_jerk_all);
 
 % Jerk 1x4 ANOVA for concurrent and offline feedback respectively
 figure(3)
-[~,~,stats_jerk_c] = anova2(jerk_matrix_c,350);
+[~,stats_jerk_c] = anova1(jerk_matrix_c);
 figure(4)
 c_jerk_c = multcompare(stats_jerk_c);
 
 figure(5)
-[~,~,stats_jerk_o] = anova2(jerk_matrix_o,350);
+[~,stats_jerk_o] = anova1(jerk_matrix_o);
 figure(6)
 c_jerk_o = multcompare(stats_jerk_o);
 
@@ -154,6 +154,17 @@ plot([1,5],[avgHits_vp1_c, avgHits_vp1_o], '*-');
 hold on
 plot([1,5],[avgHits_vp2_c, avgHits_vp2_o], 'o-');
 
+%One-way ANOVAs to test for simple effects of viapoints in each condition
+vect_simple_eff_c_position = reshape(hits_matrix_c_position, [28,2]);
+[~,vp1anova] = anova1(vect_simple_eff_c_position);
+vect_simple_eff_o_position = reshape(hits_matrix_o_position, [28,2]);
+[~,vp2anova] = anova1(vect_simple_eff_o_position);
+
+%One-way ANOVAs to test for simple effects of condition on each viapoint
+condOnViapoint1 = [vect_simple_eff_c_position(:,1) vect_simple_eff_o_position(:,1)];
+[~,condvp1] = anova1(condOnViapoint1); %SIGNIFICANT
+condOnViapoint2 = [vect_simple_eff_c_position(:,2) vect_simple_eff_o_position(:,2)];
+[~,condvp2] = anova1(condOnViapoint2);
 %% Velocity hits
 
 velocity_hits_vector = [];
@@ -181,7 +192,41 @@ end
 [~,~,stats_velocity_all] = anovan(velocity_hits_vector,{condition_velocity block_velocity segment_velocity},'model','interaction',...
     'varnames',{'condition','block','submovement'});
 
+% Plot interactions
+ccv = mean(hits_matrix_c_velocity, [1,2]);
+avgHits_sub1_c = ccv(:,:,1);
+avgHits_sub2_c = ccv(:,:,2);
+avgHits_sub3_c = ccv(:,:,3);
+oov = mean(hits_matrix_o_velocity, [1,2]);
+avgHits_sub1_o = oov(:,:,1);
+avgHits_sub2_o = oov(:,:,2);
+avgHits_sub3_o = oov(:,:,3);
 
+%Not an indication of correct trajectory
+plot([1,5],[avgHits_sub1_c, avgHits_sub1_o], '*-');
+hold on
+plot([1,5],[avgHits_sub2_c, avgHits_sub2_o], 'o-');
+plot([1,5],[avgHits_sub3_c, avgHits_sub3_o], '.-');
+
+%One-way ANOVAs to test for simple effects of submovements in each condition
+vect_simple_eff_c_velocity = reshape(hits_matrix_c_velocity, [28,3]);
+[~,sub1anova,tb1] = anova1(vect_simple_eff_c_velocity);
+vect_simple_eff_o_velocity = reshape(hits_matrix_o_velocity, [28,3]);
+[~,sub2anova,tb2] = anova1(vect_simple_eff_o_velocity);
+
+tttc = multcompare(tb1); %sub1 signfic different from the others
+ttto = multcompare(tb2); %all significantly different
+%for both conditions hits steadily decreasing
+
+%One-way ANOVAs to test for simple effects of condition on each submovement
+condOnSub1 = [vect_simple_eff_c_velocity(:,1) vect_simple_eff_o_velocity(:,1)];
+[~,condsub1] = anova1(condOnSub1);  %right velocity for the first submovement is more reliably reached in the offline condition; consistent with the first vp being more frequently reached in the conccurrent condition.
+condOnSub2 = [vect_simple_eff_c_velocity(:,2) vect_simple_eff_o_velocity(:,2)];
+[~,condsub2] = anova1(condOnSub2);
+condOnSub3 = [vect_simple_eff_c_velocity(:,3) vect_simple_eff_o_velocity(:,3)];
+[~,condsub3] = anova1(condOnSub3);
+
+%% Fast Fourier Transform (FFT)
 
 
 
