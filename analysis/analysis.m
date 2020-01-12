@@ -92,28 +92,35 @@ hits_matrix_velocity = [hits_matrix_c_velocity; hits_matrix_o_velocity]; %no_par
 
 % Jerk 2x4 ANOVA
 figure(1)
-[~,~,stats_jerk_all] = anova2(jerk_matrix,350);
+[rr,ss,stats_jerk_all] = anova2(jerk_matrix,350);
 figure(2)
 c_jerk_all = multcompare(stats_jerk_all);
 
 % Jerk 1x4 ANOVA for concurrent and offline feedback respectively
 figure(3)
-[~,stats_jerk_c] = anova1(jerk_matrix_c);
+[~,sr,stats_jerk_c] = anova1(jerk_matrix_c);
+y1 = stats_jerk_c.means;
 figure(4)
 c_jerk_c = multcompare(stats_jerk_c);
 
 figure(5)
-[~,stats_jerk_o] = anova1(jerk_matrix_o);
+[~,rs,stats_jerk_o] = anova1(jerk_matrix_o);
+y2 = stats_jerk_o.means;
 figure(6)
 c_jerk_o = multcompare(stats_jerk_o);
+
+X = categorical({'Concurrent','Terminal'});
+X = reordercats(X,{'Concurrent','Terminal'});
+Y = [y1;y2];
+bar(X,Y)
 
 % Jerk t-tests - compare concurrent and offline feedback for first and
 % last block respectively
 block1 = [jerk_matrix_c(:,1) jerk_matrix_o(:,1)];
-[h_block1, p_block1] = ttest2(block1(:,1), block1(:,2));
+[h_block1, p_block1,~,statss] = ttest2(block1(:,1), block1(:,2));
 
 block4 = [jerk_matrix_c(:,4) jerk_matrix_o(:,4)];
-[h_block4, p_block4] = ttest2(block4(:,1), block4(:,2));
+[h_block4, p_block4,~,stats] = ttest2(block4(:,1), block4(:,2));
 
 %% Viapoint hits
 % Hits position 2x4x2 ANOVA
@@ -150,9 +157,10 @@ avgHits_vp1_o = oo(:,:,1);
 avgHits_vp2_o = oo(:,:,2);
 
 %Not an indication of correct trajectory
-plot([1,5],[avgHits_vp1_c, avgHits_vp1_o], '*-');
+X = categorical({'Concurrent','Terminal'});
+plot(X,[avgHits_vp1_c, avgHits_vp1_o], '*-');
 hold on
-plot([1,5],[avgHits_vp2_c, avgHits_vp2_o], 'o-');
+plot(X,[avgHits_vp2_c, avgHits_vp2_o], 'o-');
 
 %One-way ANOVAs to test for simple effects of viapoints in each condition
 vect_simple_eff_c_position = reshape(hits_matrix_c_position, [28,2]);
@@ -203,10 +211,10 @@ avgHits_sub2_o = oov(:,:,2);
 avgHits_sub3_o = oov(:,:,3);
 
 %Not an indication of correct trajectory
-plot([1,5],[avgHits_sub1_c, avgHits_sub1_o], '*-');
+plot(X,[avgHits_sub1_c, avgHits_sub1_o], '*-');
 hold on
-plot([1,5],[avgHits_sub2_c, avgHits_sub2_o], 'o-');
-plot([1,5],[avgHits_sub3_c, avgHits_sub3_o], '.-');
+plot(X,[avgHits_sub2_c, avgHits_sub2_o], 'o-');
+plot(X,[avgHits_sub3_c, avgHits_sub3_o], '.-');
 
 %One-way ANOVAs to test for simple effects of submovements in each condition
 vect_simple_eff_c_velocity = reshape(hits_matrix_c_velocity, [28,3]);
@@ -226,7 +234,27 @@ condOnSub2 = [vect_simple_eff_c_velocity(:,2) vect_simple_eff_o_velocity(:,2)];
 condOnSub3 = [vect_simple_eff_c_velocity(:,3) vect_simple_eff_o_velocity(:,3)];
 [~,condsub3] = anova1(condOnSub3);
 
-%% Fast Fourier Transform (FFT)
+%% More plots
+
+X = categorical({'Concurrent','Terminal'});
+X = reordercats(X,{'Concurrent','Terminal'});
+Y = [1.93506E+12 1.01888E+12];
+bar(X,Y,0.5)
+
+X = categorical({'Block1','Block2','Block3','Block4'});
+X = reordercats(X,{'Block1','Block2','Block3','Block4'});
+Y = [9.09053E+11 6.14165E+11 1.71093E+12 2.67372E+12];
+bar(X,Y,0.7)
+
+X = categorical({'Concurrent','Terminal'});
+X = reordercats(X,{'Concurrent','Terminal'});
+Y = [7.892857143 14.39285714; 1.071428571 18];
+bar(X,Y);
+
+X = categorical({'Concurrent','Terminal'});
+X = reordercats(X,{'Concurrent','Terminal'});
+Y = [21.35714286 11.85714286 9.785714286; 26.32142857 11.82142857 6.75];
+bar(X,Y);
 
 
 
